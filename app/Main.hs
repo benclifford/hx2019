@@ -25,4 +25,6 @@ putFileinfoLn :: Fileinfo -> IO ()
 putFileinfoLn = putStrLn . renderFileinfo
 
 renderFileinfo :: Fileinfo -> String
-renderFileinfo file = _filename file ++ ", " ++ show (_size file) ++ " bytes"
+renderFileinfo file | _isdir file = _filename file ++ ", directory"
+renderFileinfo file | _size file >= 1024 = _filename file ++ ", " ++ show (_size file `div` 1024) ++ " kilobyte(s)"
+renderFileinfo file = _filename file ++ ", " ++ show (_size file) ++ " byte(s)"
