@@ -36,6 +36,7 @@ executables:
     dependencies:
     - myls
     - directory
+    - optparse-applicative
 
 tests:
   myls-test:
