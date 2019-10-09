@@ -1,6 +1,9 @@
 module Main where
 
-import Lib
+import System.Directory as D
 
 main :: IO ()
-main = someFunc
+main = do
+  putStrLn "myls"
+  files <- D.listDirectory "."
+  print files

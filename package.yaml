@@ -35,6 +35,7 @@ executables:
     - -with-rtsopts=-N
     dependencies:
     - myls
+    - directory
 
 tests:
   myls-test:
