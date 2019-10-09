@@ -17,11 +17,15 @@ main = do
 
   opts <- O.execParser cliParserInfo
 
-  D.setCurrentDirectory opts
+  D.setCurrentDirectory (_path opts)
 
   files <- D.listDirectory "."
   files' <- elaborateFiles files
-  F.for_ files' putFileinfoLn
+
+  let printer = case _long opts of
+        True -> putFileinfoLn
+        False -> (putStrLn . _filename)
+  F.for_ files' printer
 
 elaborateFiles :: [FilePath] -> IO [Fileinfo]
 elaborateFiles files = do
@@ -44,8 +48,16 @@ prefixify s | s >= 1024 = (s `div` 1024, "kilo")
 prefixify s = (s, "")
 
 
-cliParser :: O.Parser String
-cliParser = O.strArgument (O.metavar "PATH" <> O.value ".")
 
-cliParserInfo :: O.ParserInfo String
+data MylsOptions = MylsOptions {
+  _path :: String,
+  _long :: Bool
+}
+
+cliParser :: O.Parser MylsOptions
+cliParser =
+  MylsOptions <$> O.strArgument (O.metavar "PATH" <> O.value ".")
+              <*> O.switch (long "long" <> short 'l' <> help "Enable long output")
+
+cliParserInfo :: O.ParserInfo MylsOptions
 cliParserInfo = O.info (O.helper <*> cliParser) (mempty)
