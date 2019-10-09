@@ -45,7 +45,7 @@ prefixify s = (s, "")
 
 
 cliParser :: O.Parser String
-cliParser = O.strArgument (O.metavar "PATH")
+cliParser = O.strArgument (O.metavar "PATH" <> O.value ".")
 
 cliParserInfo :: O.ParserInfo String
-cliParserInfo = O.info (cliParser) (mempty)
+cliParserInfo = O.info (O.helper <*> cliParser) (mempty)
