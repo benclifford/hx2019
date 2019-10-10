@@ -27,10 +27,7 @@ main = do
 
 rest :: MyApp ()
 rest = do
-  files <- getFiles
-  files' <- elaborateFiles files
-  printFiles files'
-
+  getFiles >>= elaborateFiles >>= printFiles
 
 
 getFiles :: MyApp [FilePath]
