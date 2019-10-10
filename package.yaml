@@ -37,6 +37,7 @@ executables:
     - myls
     - ansi-terminal
     - directory
+    - mtl
     - optparse-applicative
 
 tests:

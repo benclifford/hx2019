@@ -1,6 +1,9 @@
 {-# Language ViewPatterns #-}
 module Main where
 
+import Control.Monad.Reader as R
+import Control.Monad.IO.Class (liftIO)
+
 import Data.Foldable as F
 import Data.Traversable as T
 import Options.Applicative as O
@@ -13,41 +16,52 @@ data Fileinfo = Fileinfo {
   _isdir :: Bool
 }
 
+type MyApp = ReaderT MylsOptions IO
+
 main :: IO ()
 main = do
 
   opts <- O.execParser cliParserInfo
 
-  files <- getFiles opts
+  R.runReaderT rest opts
 
+rest :: MyApp ()
+rest = do
+  files <- getFiles
   files' <- elaborateFiles files
-
-  printFiles opts files'
-
+  printFiles files'
 
 
-getFiles :: MylsOptions -> IO [FilePath]
-getFiles opts = do
-  D.setCurrentDirectory (_path opts)
-  D.listDirectory "."
 
-printFiles :: MylsOptions -> [Fileinfo] -> IO ()
-printFiles opts files = do
-  let printer = case _long opts of
-        True -> putFileinfoLn
-        False -> (putStrLn . _filename)
+getFiles :: MyApp [FilePath]
+getFiles = do
+  opts <- ask
+  liftIO $ do
+    D.setCurrentDirectory (_path opts)
+    D.listDirectory "."
+
+printFiles :: [Fileinfo] -> MyApp ()
+printFiles files = do
+  -- this becomes an action rather than a pure case
+  -- so the let turns into <-
+  -- because we're doing an action now -- reading options
+  printer <- do
+    opts <- ask
+    pure $ case _long opts of
+             True -> putFileinfoLn
+             False -> (liftIO . putStrLn . _filename)
   F.for_ files printer
 
 
 
 
-elaborateFiles :: [FilePath] -> IO [Fileinfo]
+elaborateFiles :: [FilePath] -> MyApp [Fileinfo]
 elaborateFiles files = do
   T.for files $ \file -> 
-    Fileinfo file <$> D.getFileSize file <*> D.doesDirectoryExist file
+    liftIO $ Fileinfo file <$> D.getFileSize file <*> D.doesDirectoryExist file
 
-putFileinfoLn :: Fileinfo -> IO ()
-putFileinfoLn f = do
+putFileinfoLn :: Fileinfo -> MyApp ()
+putFileinfoLn f = liftIO $ do
   putStr (_filename f)
   putStr ", "
   if _isdir f
