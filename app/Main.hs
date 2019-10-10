@@ -30,8 +30,14 @@ main = do
 
 rest :: MyApp ()
 rest = do
-  getFiles >>= elaborateFiles >>= sortFiles >>= printFiles
+  getFiles >>= elaborateFiles >>= filterFiles >>= sortFiles >>= printFiles
 
+filterFiles :: [Fileinfo] -> MyApp [Fileinfo]
+filterFiles files = do
+  h <- _hidden <$> ask
+  if h then pure files
+       else pure (filter check files)
+  where check file = (head . _filename) file /= '.'
 
 sortFiles :: [Fileinfo] -> MyApp [Fileinfo]
 sortFiles f = do
@@ -121,7 +127,8 @@ setNormal = A.setSGR []
 data MylsOptions = MylsOptions {
   _path :: String,
   _long :: Bool,
-  _sortMode :: SortMode
+  _sortMode :: SortMode,
+  _hidden :: Bool
 }
 
 data SortMode = None | Alpha | Size | NameLength deriving Read
@@ -131,6 +138,7 @@ cliParser =
   MylsOptions <$> O.strArgument (O.metavar "PATH" <> O.value ".")
               <*> O.switch (long "long" <> short 'l' <> help "Enable long output")
               <*> O.option O.auto (long "sort" <> O.metavar "MODE" <> help "sort mode" <> O.value Alpha)
+              <*> O.switch (long "hidden" <> help "Show hidden files")
 
 cliParserInfo :: O.ParserInfo MylsOptions
 cliParserInfo = O.info (O.helper <*> cliParser) (mempty)
