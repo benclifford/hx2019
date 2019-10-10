@@ -4,7 +4,9 @@ module Main where
 import Control.Monad.Reader as R
 import Control.Monad.IO.Class (liftIO)
 
+import Data.List as L
 import Data.Foldable as F
+import Data.Ord as OR
 import Data.Traversable as T
 import Options.Applicative as O
 import System.Console.ANSI as A
@@ -27,7 +29,16 @@ main = do
 
 rest :: MyApp ()
 rest = do
-  getFiles >>= elaborateFiles >>= printFiles
+  getFiles >>= elaborateFiles >>= sortFiles >>= printFiles
+
+
+sortFiles :: [Fileinfo] -> MyApp [Fileinfo]
+sortFiles = pure . L.sortBy (OR.comparing _filename)
+-- or:
+-- sortFiles = pure . L.sortBy (OR.comparing _size)
+-- or by a function that *isn't* a field accessor:
+-- sortFiles = pure . L.sortBy (OR.comparing (length . _filename))
+
 
 
 getFiles :: MyApp [FilePath]
