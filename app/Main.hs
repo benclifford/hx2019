@@ -18,15 +18,28 @@ main = do
 
   opts <- O.execParser cliParserInfo
 
-  D.setCurrentDirectory (_path opts)
-  files <- D.listDirectory "."
+  files <- getFiles opts
 
   files' <- elaborateFiles files
 
+  printFiles opts files'
+
+
+
+getFiles :: MylsOptions -> IO [FilePath]
+getFiles opts = do
+  D.setCurrentDirectory (_path opts)
+  D.listDirectory "."
+
+printFiles :: MylsOptions -> [Fileinfo] -> IO ()
+printFiles opts files = do
   let printer = case _long opts of
         True -> putFileinfoLn
         False -> (putStrLn . _filename)
-  F.for_ files' printer
+  F.for_ files printer
+
+
+
 
 elaborateFiles :: [FilePath] -> IO [Fileinfo]
 elaborateFiles files = do
