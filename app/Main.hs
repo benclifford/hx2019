@@ -4,6 +4,7 @@ module Main where
 import Data.Foldable as F
 import Data.Traversable as T
 import Options.Applicative as O
+import System.Console.ANSI as A
 import System.Directory as D
 
 data Fileinfo = Fileinfo {
@@ -18,8 +19,8 @@ main = do
   opts <- O.execParser cliParserInfo
 
   D.setCurrentDirectory (_path opts)
-
   files <- D.listDirectory "."
+
   files' <- elaborateFiles files
 
   let printer = case _long opts of
@@ -33,11 +34,20 @@ elaborateFiles files = do
     Fileinfo file <$> D.getFileSize file <*> D.doesDirectoryExist file
 
 putFileinfoLn :: Fileinfo -> IO ()
-putFileinfoLn = putStrLn . renderFileinfo
-
-renderFileinfo :: Fileinfo -> String
-renderFileinfo file | _isdir file = _filename file ++ ", directory"
-renderFileinfo file = _filename file ++ ", " ++ prettySize (_size file)
+putFileinfoLn f = do
+  putStr (_filename f)
+  putStr ", "
+  if _isdir f
+    then do
+      setColor A.Green
+      putStr "directory"
+      setNormal
+    else do
+      setColor A.Cyan
+      (putStr . prettySize . _size) f
+      -- or putStr (prettySize (_size f))
+      setNormal
+  putStrLn ""
 
 prettySize :: Integer -> String
 prettySize (prefixify -> (s, p)) | s == 1 = show s ++ " " ++ p ++ "byte"
@@ -46,6 +56,13 @@ prettySize (prefixify -> (s, p)) = show s ++ " " ++ p ++ "bytes"
 prefixify :: Integer -> (Integer, String)
 prefixify s | s >= 1024 = (s `div` 1024, "kilo")
 prefixify s = (s, "")
+
+
+setColor :: A.Color -> IO ()
+setColor col = A.setSGR [A.SetColor A.Foreground A.Vivid col]
+
+setNormal :: IO ()
+setNormal = A.setSGR []
 
 
 
