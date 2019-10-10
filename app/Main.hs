@@ -1,4 +1,5 @@
 {-# Language ViewPatterns #-}
+{-# options_ghc -fwarn-incomplete-patterns -Werror #-}
 module Main where
 
 import Control.Monad.Reader as R
@@ -33,7 +34,24 @@ rest = do
 
 
 sortFiles :: [Fileinfo] -> MyApp [Fileinfo]
-sortFiles = pure . L.sortBy (OR.comparing _filename)
+sortFiles f = do
+  c <- getSorter
+  pure (L.sortBy c f)
+
+  -- or in applicative style, pushing the pure deeper down:
+  -- L.sortBy <$> getSorter <*> (pure f)
+
+  where 
+    getSorter :: MyApp (Fileinfo -> Fileinfo -> OR.Ordering)
+    getSorter = do
+      mode <- _sortMode <$> ask
+      pure $ case mode of 
+        Alpha -> OR.comparing _filename
+        Size -> OR.comparing _size
+        NameLength -> OR.comparing (length . _filename)
+        None -> \l r -> OR.EQ
+
+-- (OR.comparing _filename)
 -- or:
 -- sortFiles = pure . L.sortBy (OR.comparing _size)
 -- or by a function that *isn't* a field accessor:
@@ -100,16 +118,19 @@ setNormal :: IO ()
 setNormal = A.setSGR []
 
 
-
 data MylsOptions = MylsOptions {
   _path :: String,
-  _long :: Bool
+  _long :: Bool,
+  _sortMode :: SortMode
 }
+
+data SortMode = None | Alpha | Size | NameLength deriving Read
 
 cliParser :: O.Parser MylsOptions
 cliParser =
   MylsOptions <$> O.strArgument (O.metavar "PATH" <> O.value ".")
               <*> O.switch (long "long" <> short 'l' <> help "Enable long output")
+              <*> O.option O.auto (long "sort" <> O.metavar "MODE" <> help "sort mode" <> O.value Alpha)
 
 cliParserInfo :: O.ParserInfo MylsOptions
 cliParserInfo = O.info (O.helper <*> cliParser) (mempty)
